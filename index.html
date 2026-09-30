@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Strategy Case Lab</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --panel: #f5f5f4;
+  --text: #1b1b1b;
+  --muted: #666666;
+  --line: #dcdcda;
+  --accent: #1d4e6e;
+  --accent-fg: #ffffff;
+  --good: #17703a;
+  --bad: #b3261e;
+  --warn-bg: #fff5e2;
+  --warn-line: #e2b25a;
+  --user-bg: #1d4e6e;
+  --user-fg: #ffffff;
+  --bot-bg: #ffffff;
+  color-scheme: light dark;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151617;
+    --panel: #1d1f21;
+    --text: #ececea;
+    --muted: #a3a3a0;
+    --line: #35383b;
+    --accent: #7db8de;
+    --accent-fg: #101214;
+    --good: #5fcf8b;
+    --bad: #ff8f86;
+    --warn-bg: #3a2f18;
+    --warn-line: #8a6a2a;
+    --user-bg: #2c5f80;
+    --user-fg: #ffffff;
+    --bot-bg: #26292c;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151617;
+  --panel: #1d1f21;
+  --text: #ececea;
+  --muted: #a3a3a0;
+  --line: #35383b;
+  --accent: #7db8de;
+  --accent-fg: #101214;
+  --good: #5fcf8b;
+  --bad: #ff8f86;
+  --warn-bg: #3a2f18;
+  --warn-line: #8a6a2a;
+  --user-bg: #2c5f80;
+  --user-fg: #ffffff;
+  --bot-bg: #26292c;
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+button, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Layout */
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100%; }
+.main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.top { padding: 16px 28px 0; border-bottom: 1px solid var(--line); }
+.top-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 18px; }
+.brand small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+.top-right { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); }
+.steps { display: flex; align-items: center; gap: 6px; }
+.dot { width: 10px; height: 10px; border: 1.5px solid var(--muted); border-radius: 50%; }
+.dot.done { background: var(--accent); border-color: var(--accent); }
+.dot.cur { border-color: var(--accent); border-width: 3px; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 14px; }
+.tabs { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 8px 12px; color: var(--muted); cursor: pointer; white-space: nowrap; font-size: 15px;
+}
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.tab:disabled { opacity: 0.4; cursor: not-allowed; }
+.content { flex: 1; overflow-y: auto; padding: 24px 28px 56px; }
+.page { max-width: 720px; }
+
+/* Text */
+h2 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; }
+h3 { font-size: 16px; margin: 26px 0 8px; }
+p { margin: 0 0 12px; }
+ul { margin: 0 0 12px; padding-left: 20px; }
+li { margin-bottom: 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.tag { color: var(--muted); font-size: 14px; margin-bottom: 4px; }
+.lead { font-size: 17px; }
+
+/* Blocks */
+.note { background: var(--panel); border-radius: 6px; padding: 10px 14px; font-size: 14.5px; margin: 12px 0; }
+.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 6px; padding: 10px 14px; margin: 12px 0; }
+.event { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 10px 14px; margin: 10px 0; }
+.event .kind { font-size: 13px; color: var(--muted); }
+.event strong { display: block; }
+.quote { border-left: 3px solid var(--line); margin: 8px 0; padding: 2px 0 2px 14px; }
+.quote .who { font-weight: 600; font-size: 14.5px; }
+.opt { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 8px 0; }
+.opt.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.opt input { margin-top: 5px; }
+label.opt { cursor: pointer; }
+.result { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; margin: 12px 0; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--muted); font-size: 13.5px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.group td { background: var(--panel); font-weight: 600; }
+.good { color: var(--good); }
+.bad { color: var(--bad); }
+.neutral { color: var(--muted); }
+
+/* Form */
+fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+legend { font-weight: 600; padding: 0; margin-bottom: 4px; }
+.field-label { display: block; font-weight: 600; margin: 18px 0 4px; }
+textarea.big {
+  width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px;
+  background: var(--bg); resize: vertical; line-height: 1.5;
+}
+.count { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.count.ok { color: var(--good); }
+.btn {
+  background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 6px;
+  padding: 10px 18px; cursor: pointer; font-weight: 600; margin-top: 8px;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.secondary { background: none; color: var(--accent); border: 1px solid var(--accent); }
+.readonly-text { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--panel); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; }
+.report-box { width: 100%; min-height: 220px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; background: var(--bg); font-size: 14px; }
+
+/* Chat */
+.chat { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); }
+.chat-head { padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 700; }
+.chat-head span { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+.msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 90%; padding: 8px 12px; border-radius: 12px; font-size: 14.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.bot { align-self: flex-start; background: var(--bot-bg); border: 1px solid var(--line); }
+.msg.user { align-self: flex-end; background: var(--user-bg); color: var(--user-fg); }
+.composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+.composer textarea {
+  flex: 1; resize: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  background: var(--bg); font-size: 16px; line-height: 1.4;
+}
+.composer .btn { margin-top: 0; align-self: flex-end; padding: 9px 14px; }
+
+@media (max-width: 860px) {
+  .app { display: block; height: auto; }
+  .main { display: block; }
+  .top { padding: 12px 16px 0; }
+  .content { overflow: visible; padding: 18px 16px 32px; }
+  .chat { height: 460px; border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<noscript>This exercise needs JavaScript to run.</noscript>
+<div class="app">
+  <main class="main">
+    <div class="top">
+      <div class="top-row">
+        <div class="brand">Strategy Case Lab<small>You are the owner of Halden Cycles</small></div>
+        <div class="top-right">
+          <div class="steps" id="steps" aria-label="Progress"></div>
+          <button class="link-btn" id="restart" type="button">Restart</button>
+        </div>
+      </div>
+      <div class="tabs" id="tabs" role="tablist"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+
+  <aside class="chat" aria-label="Advisor chat">
+    <div class="chat-head">Strategy advisor<span>Demo only, not connected to an assistant yet</span></div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="composer">
+      <textarea id="chatInput" rows="2" placeholder="Ask about the case, the data or your argument" aria-label="Message"></textarea>
+      <button class="btn" id="send" type="button">Send</button>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     CONFIG
+  ------------------------------------------------------------------ */
+  const STORE_KEY = "strategy-case-lab-v1";
+  const MINUS = "\u2212";
+  const MIN_ARG = 60;   // minimum words in the argument
+  const MIN_RISK = 20;  // minimum words in the risk answer
+
+  // Every number the student sees. good: 1 = higher is better, -1 = lower is better, 0 = neutral
+  const IND = [
+    { k: "gdp",          label: "GDP growth",                                group: "Economy",      unit: "%",  dec: 1, good: 1,  min: -10, max: 15 },
+    { k: "inflation",    label: "Inflation",                                 group: "Economy",      unit: "%",  dec: 1, good: -1, min: 0,   max: 20 },
+    { k: "interest",     label: "Central bank interest rate",                group: "Economy",      unit: "%",  dec: 2, good: -1, min: 0,   max: 15 },
+    { k: "confidence",   label: "Consumer confidence (100 = neutral)",       group: "Economy",      unit: "",   dec: 0, good: 1,  min: 50,  max: 150 },
+    { k: "unemployment", label: "Unemployment",                              group: "Economy",      unit: "%",  dec: 1, good: 0,  min: 1,   max: 25 },
+    { k: "demand",       label: "Bike-sector demand (index, 100 = 5-year average)", group: "Economy", unit: "", dec: 0, good: 1, min: 50, max: 150 },
+    { k: "inputs",       label: "Input costs (index, 100 = last year)",      group: "Economy",      unit: "",   dec: 0, good: -1, min: 50,  max: 200 },
+    { k: "sustain",      label: "Consumer interest in sustainability (0–100)", group: "Society",    unit: "",   dec: 0, good: 1,  min: 0,   max: 100 },
+    { k: "talent",       label: "Availability of skilled technicians (0–100)", group: "Society",    unit: "",   dec: 0, good: 1,  min: 0,   max: 100 },
+    { k: "trust",        label: "Public trust in business (0–100)",          group: "Society",      unit: "",   dec: 0, good: 1,  min: 0,   max: 100 },
+    { k: "cash",         label: "Cash",                                      group: "Your company", unit: "€m", dec: 1, good: 1,  min: -50, max: 200 },
+    { k: "revenue",      label: "Annual revenue",                            group: "Your company", unit: "€m", dec: 1, good: 1,  min: 0,   max: 500 },
+    { k: "staff",        label: "Employees",                                 group: "Your company", unit: "",   dec: 0, good: 0,  min: 0,   max: 2000 },
+    { k: "morale",       label: "Staff morale (0–100)",                      group: "Your company", unit: "",   dec: 0, good: 1,  min: 0,   max: 100 },
+    { k: "brand",        label: "Brand reputation (0–100)",                  group: "Your company", unit: "",   dec: 0, good: 1,  min: 0,   max: 100 },
+    { k: "share",        label: "Market share, home market",                 group: "Your company", unit: "%",  dec: 1, good: 1,  min: 0,   max: 100 }
+  ];
+
+  const BASE = {
+    gdp: 1.4, inflation: 3.8, interest: 3.5, confidence: 96, unemployment: 5.8, demand: 102, inputs: 108,
+    sustain: 62, talent: 41, trust: 54,
+    cash: 6.0, revenue: 24.0, staff: 180, morale: 66, brand: 68, share: 9.0
+  };
+
+  /* ------------------------------------------------------------------
+     THE FOUR CASES
+     Each option's effects() returns changes to the data. It receives the
+     current data, so the same decision can have different results
+     depending on the economic situation.
+  ------------------------------------------------------------------ */
+  const CASES = [
+    {
+      title: "The Castalia Question",
+      tag: "Market entry and investment",
+      exTitle: "Invest, export or stay home?",
+      question: "You have one week to answer VeloMart. What do you decide? Choose one option and argue your case as the owner of Halden Cycles.",
+      blurb: "A large foreign retailer wants your e-bikes. Do you invest to enter a fast-growing market, and how far do you go?",
+      background: [
+        "Halden Cycles was founded by you 14 years ago. It designs and assembles city bikes and e-bikes in Norvia, employs about 180 people, and sells 70% of its bikes through independent dealers and 30% through its own webshop. The company is profitable, but growth in the home market has slowed to a crawl."
+      ],
+      situation: [
+        "Last week the head buyer of VeloMart, a retail chain with 120 stores in neighbouring Castalia, called you. VeloMart wants to sell Halden e-bikes and asks you to supply 3,000 bikes a year, provided you can start within nine months.",
+        "Castalia's e-bike market is growing about three times faster than yours. But your plant already runs at roughly 85% of capacity, skilled technicians are hard to find, and your cash reserve is limited."
+      ],
+      facts: [
+        "Castalia has 21 million inhabitants. Its e-bike market is worth about €310m and grows around 9% a year. Three local brands hold 55% of it.",
+        "Bikes assembled outside Castalia pay an 8% import tariff. Bikes assembled inside Castalia pay none.",
+        "Castalian shoppers are price-sensitive: the average e-bike sells for about 20% less than in Norvia.",
+        "A Castalian assembly plant would cost about €4.0m and take 12 to 18 months to open. Any borrowing is at today's interest rate (see the Briefing).",
+        "Expanding your plant at home would take 18 months, so it is not an option for this decision.",
+        "The Castalian currency has been volatile over the last three years."
+      ],
+      team: [
+        ["Marta, CFO", "Our bank balance is finite. A plant would drain most of it before it pays back, and if interest rates rise we are exposed."],
+        ["Jonas, Head of Sales", "VeloMart gives us 120 shop windows for the price of a few trade fairs. If we say no, a rival will say yes."],
+        ["Ilse, Head of Operations", "We cannot serve two markets without new technicians, and we are already short of them."]
+      ],
+      options: [
+        {
+          id: "A", title: "Build a plant in Castalia",
+          summary: "Invest about €4.0m in a local assembly plant and sales team. No tariff, higher long-term margin, about 25 new jobs. Opens in 12–18 months and absorbs most of your cash.",
+          effects: s => ({ cash: -(3.2 + 0.2 * s.interest), revenue: 0.8, staff: 25, morale: 3, brand: 2, talent: -3, unemployment: -0.1 }),
+          outcome: "Construction starts on the Castalian plant. Banks and suppliers take your commitment seriously and about 25 people are hired, but the project swallows most of your cash and competes with local employers for technicians. Revenue barely moves yet: any payoff is 18 months or more away."
+        },
+        {
+          id: "B", title: "Export through VeloMart",
+          summary: "Spend about €0.6m on certification and logistics and supply 3,000 bikes a year. Starts within six months. After tariff and the retailer's margin you earn less per bike, and you depend on one buyer.",
+          effects: s => ({ cash: -0.6, revenue: 2.8, staff: 10, morale: 1, brand: 1, talent: -1, inputs: 1 }),
+          outcome: "The VeloMart deal starts quickly and the first containers ship within six months. Revenue jumps, but the tariff and the retailer's margin eat into profit per bike, and you now rely on one customer whose buyer can renegotiate at any time."
+        },
+        {
+          id: "C", title: "Stay focused on Norvia",
+          summary: "Invest about €1.5m in your dealer network and webshop at home. Lower risk and cash stays healthy, but you give up the fastest-growing market.",
+          effects: s => ({ cash: -1.5, revenue: 1.4, staff: 5, morale: 2, brand: 2, share: 1.2 }),
+          outcome: "You strengthen dealer relationships and relaunch the webshop. Your home-market share edges up and your finances stay healthy, but the fastest-growing market is left to others and VeloMart signs another supplier."
+        }
+      ]
+    },
+    {
+      title: "Price War: The Discounter Arrives",
+      tag: "Competitive response and pricing",
+      exTitle: "Fight, differentiate or go budget?",
+      question: "Your dealers are waiting for an answer. How do you respond to Swiftly? Choose one option and argue your case.",
+      blurb: "A low-cost overseas brand is about to sell an e-bike for almost half your average price. How do you respond?",
+      background: [
+        "Halden's core range sells at an average price of €1,650. The Norvian e-bike market is mature, dealers account for most sales, and customers have historically valued fit, service and brand over the lowest price."
+      ],
+      situation: [
+        "Swiftly, an overseas direct-to-consumer brand, has announced a basic e-bike at €899 in Norvia, sold from its webshop and backed by a large advertising campaign. The trade press calls it the end of the mid-market.",
+        "Two of your biggest dealers have asked for urgent price support, and the dealers' association is meeting next week."
+      ],
+      facts: [
+        "Swiftly's bike: 250W motor, about 40 km range, 2-year warranty, delivered in 5 days. It has no dealer network for servicing.",
+        "Your gross margin is about 38%. A 15% price cut would lower it to about 27%, so volume would have to rise by roughly two thirds to earn the same gross profit.",
+        "Your customer survey: 34% say price is decisive, 46% say service and a local dealer are decisive, 20% say brand and quality.",
+        "Your batteries have the lowest failure rate in the market after two years.",
+        "A contract manufacturer in Asia could build a simplified bike for about €430 per unit, which would sell for around €999.",
+        "Dealers hold about nine weeks of Halden inventory."
+      ],
+      team: [
+        ["Jonas, Head of Sales", "Dealers will drop us if we stay silent. We have to match the price."],
+        ["Priya, Head of Marketing", "Our battery reliability is the strongest story in the market. Nobody can copy that overnight."],
+        ["Chair of the dealers' association", "We need help now, not in a year. Our customers are already asking about Swiftly."]
+      ],
+      options: [
+        {
+          id: "A", title: "Match the price war",
+          summary: "Cut core-range prices by 15% for 12 months. Volumes rise and dealers are relieved, but margins shrink, especially while input costs are high.",
+          effects: s => ({ cash: -(0.8 + Math.max(0, s.inputs - 100) * 0.04), revenue: 1.0, share: 2.0, morale: -3, brand: -3, demand: -1 }),
+          outcome: "You cut core-range prices by 15%. Dealers are relieved and volumes rise, and you win back share from Swiftly. But margins shrink, especially with input costs elevated, and staff and customers begin to see Halden as a discount brand."
+        },
+        {
+          id: "B", title: "Differentiate on service",
+          summary: "Keep prices. Launch a 5-year battery warranty and free dealer servicing, backed by a €1.2m campaign. Slower results, stronger brand.",
+          effects: s => ({ cash: -1.2, revenue: 0.6, share: 0.4, morale: 2, brand: 5, sustain: 1, staff: 2 }),
+          outcome: "You keep your prices and launch the 5-year battery warranty with free dealer servicing. Some price-sensitive customers leave, but your reputation for quality and service grows and dealers rally around a clear story. Results come slowly."
+        },
+        {
+          id: "C", title: "Launch a budget sub-brand",
+          summary: "Create 'Halden Go' at about €999, built by a contract manufacturer (about €0.8m to set up). Keep the core line. Wins volume, risks the brand.",
+          effects: s => ({ cash: -0.8, revenue: 2.0, share: 1.4, morale: -1, brand: -2, staff: 3, sustain: -1, inputs: 1 }),
+          outcome: "Halden Go launches at €999 and sells quickly, taking volume from Swiftly. However, the cheaper bikes are built overseas, some loyal customers trade down from your core range, and the brand loses some of its premium image."
+        }
+      ]
+    },
+    {
+      title: "The Four-Day Week",
+      tag: "Internal policy and people",
+      exTitle: "Four-day week, retention package or status quo?",
+      question: "The works council wants an answer before the next budget round. Which policy do you implement? Choose one option and argue your case.",
+      blurb: "Turnover is rising and your best technicians are leaving. Which people policy do you put in place?",
+      background: [
+        "Halden's workforce is the company's biggest asset and its biggest cost. Last year's rush to fill orders meant a lot of overtime, and people are tired."
+      ],
+      situation: [
+        "Staff turnover reached 16% last year, against an industry average of 11%. Two senior technicians left last month for a competitor.",
+        "The works council has proposed a 12-month pilot of a four-day, 32-hour week at full pay for production and office staff, citing burnout. Some managers fear lower output, and your CFO worries about a cost that is hard to reverse."
+      ],
+      facts: [
+        "Replacing a skilled technician costs about €35,000 in recruitment, training and lost output.",
+        "Overtime hours are up 22% compared with last year.",
+        "Studies of four-day weeks show output is often maintained in office roles, but production with fixed shifts usually needs extra headcount. Operations estimates about 8% more staff.",
+        "A retention package (performance bonus and an in-house training academy) would cost about €0.9m per year and train around 20 technicians a year.",
+        "Agency temps cost about 25% more per hour but are flexible. Quality varies.",
+        "Skilled technicians are scarce across the region, and your competitors are recruiting."
+      ],
+      team: [
+        ["Henrik, works council chair", "We are burning people out. If we don't change something, the good ones will keep leaving."],
+        ["Marta, CFO", "If demand drops we cannot put the fifth day back without a fight. And we still have a loan to service."],
+        ["Sofia, HR manager", "Every technician who leaves takes six months of training with them. Whatever we do, we need to act on retention."]
+      ],
+      options: [
+        {
+          id: "A", title: "Four-day week pilot",
+          summary: "A 12-month pilot with a 32-hour week at full pay for all staff. Hire about 10 extra people to cover production. Review after 12 months.",
+          effects: s => ({ cash: -(0.3 + Math.max(0, s.demand - 95) * 0.02), revenue: -0.4, staff: 10, morale: 12, brand: 4, talent: 4, trust: 1, unemployment: -0.1 }),
+          outcome: "The pilot begins. Morale jumps and applications increase as word spreads that Halden is a good employer. Output is lower at first and you need around ten extra hires to cover production, but turnover starts to fall."
+        },
+        {
+          id: "B", title: "Retention package and academy",
+          summary: "Performance bonuses plus a training academy costing about €0.9m a year. Keep the five-day week.",
+          effects: s => ({ cash: -0.9, revenue: 0.4, staff: 4, morale: 7, brand: 2, talent: 3 }),
+          outcome: "The retention package and training academy launch. Staff feel valued and the pool of trained technicians grows. The cost is significant and stays fixed whatever the market does, and newly trained staff become attractive to rivals."
+        },
+        {
+          id: "C", title: "Keep policies, use agency temps",
+          summary: "No policy change. Cover gaps and overtime with agency temps. Cheapest in the short term, but a risk for morale and quality.",
+          effects: s => ({ cash: 0.3, revenue: 0.3, staff: 12, morale: -8, brand: -3, talent: -2, trust: -1, unemployment: -0.1 }),
+          outcome: "You hire agency temps and rely on overtime to fill gaps. Costs are lower in the short term, but morale falls, quality problems appear, and your best employees start to look elsewhere."
+        }
+      ]
+    },
+    {
+      title: "Rescue or Rival? The Pedalo Offer",
+      tag: "Acquisition and growth",
+      exTitle: "Buy, partner or stand aside?",
+      question: "Pedalo's owner needs an answer within two weeks. What do you do? Choose one option and argue your case.",
+      blurb: "A struggling rival offers to sell itself to you. Do you buy it, partner with it, or let it fall?",
+      background: [
+        "Pedalo is a mid-size Norvian bike maker with 140 employees and a well-known budget brand. It borrowed heavily to expand into Castalia. Sales there disappointed, and its bank has asked for repayment."
+      ],
+      situation: [
+        "Pedalo's owner has approached you privately and offered to sell the whole company for €5.5m, including its debt. Without a buyer, Pedalo is likely to go insolvent within months and a trustee would sell its assets piece by piece.",
+        "At the same time, new competitors are growing and your combined size could matter. But you would be taking on a loss-making company at a time when borrowing is not cheap."
+      ],
+      facts: [
+        "Pedalo: about €14m revenue, a loss of about €1.1m, 140 employees, an outdated e-bike range, and a modern frame-welding line.",
+        "It has 60 dealer contracts. About 30 of them overlap with yours.",
+        "Combined home-market share would be roughly 16%, probably clearing competition review.",
+        "Your bank would lend up to €4m for the purchase at today's interest rate (see the Briefing). The rest comes from your cash.",
+        "Integration typically costs 10–15% of the purchase price and takes 12–18 months. Job cuts and culture clashes are common.",
+        "The alternatives are cheaper: a joint venture (about €1.2m) or bidding for Pedalo's dealer contracts and technicians after insolvency (about €0.7m)."
+      ],
+      team: [
+        ["Marta, CFO", "Interest costs would eat most of our profit for two years. I cannot recommend it unless our cash position is comfortable."],
+        ["Jonas, Head of Sales", "This gives us the scale to fight the discounters and the retailers. Opportunities like this do not come twice."],
+        ["Ilse, Head of Operations", "Their welding line is better than ours and they have the technicians we lack. But integrating them is a project in itself."],
+        ["Pedalo's owner", "I would rather sell to a fellow bike maker than to a fund that will break the company up."]
+      ],
+      options: [
+        {
+          id: "A", title: "Acquire Pedalo",
+          summary: "Buy the whole company for €5.5m, financed by a €4m loan and your cash. Integrate the brands, keep the best staff, close overlapping stores.",
+          effects: s => ({ cash: -(2.0 + 0.1 * s.interest), revenue: 10.0, staff: 100, share: 5.0, morale: -5, brand: 1, trust: -1, unemployment: 0.1 }),
+          outcome: "You take over Pedalo, keep its welding line and best people, and close overlapping stores. Scale rises sharply and many jobs are saved, but the purchase drains your cash, interest costs bite, and merging two cultures unsettles both teams."
+        },
+        {
+          id: "B", title: "Form a joint venture",
+          summary: "Spend about €1.2m to share dealer contracts and use Pedalo's welding line. Pedalo stays independent and its owner stays in charge.",
+          effects: s => ({ cash: -1.2, revenue: 2.0, staff: 6, morale: 2, brand: 2, share: 1.5, talent: 1 }),
+          outcome: "The joint venture goes ahead: shared dealer contracts and access to Pedalo's welding line. You gain reach for a modest sum, but Pedalo remains fragile and you share control with a partner whose future is uncertain."
+        },
+        {
+          id: "C", title: "Decline and hire selectively",
+          summary: "Let Pedalo go through insolvency. Spend about €0.7m to bid for its best dealer contracts and hire its top technicians.",
+          effects: s => ({ cash: -0.7, revenue: 1.2, staff: 12, morale: 1, brand: -1, share: 1.0, talent: -1, trust: -1, unemployment: 0.1 }),
+          outcome: "You decline the acquisition and pick up dealer contracts and technicians from the insolvency estate. It is cheap, but you gain no brand or production assets, and public opinion of a local firm's collapse is unkind to those who profited."
+        }
+      ]
+    }
+  ];
+
+  /* ------------------------------------------------------------------
+     WHAT CHANGES BETWEEN CASES
+     drift: the wider economy moves on its own
+     surprise: a competitor move nobody announced
+     reactions: a competitor response to the student's previous decision
+  ------------------------------------------------------------------ */
+  const ROUNDS = [
+    {
+      drift: {},
+      reactions: null,
+      surprise: {
+        title: "Pedalo announces a Castalian expansion",
+        text: "Rival bike maker Pedalo has announced ten own stores in Castalia, financed by a €6m bank loan. To fund the launch it is running aggressive trade-in offers at home and hiring technicians at above-market pay.",
+        effects: { share: -0.3, talent: -2 }
+      }
+    },
+    {
+      drift: { gdp: -0.3, inflation: -0.2, interest: 0.25, confidence: -2, unemployment: 0.1, demand: -1, inputs: 2 },
+      reactions: {
+        A: { title: "Castalian brands fight your plant", text: "Two Castalian brands have cut prices by 10% and run ads calling your plant a foreign import in disguise.", effects: { revenue: -0.4, brand: -1 } },
+        B: { title: "VeloMart plays hardball", text: "Seeing your bikes sell well, VeloMart demands a 6% price cut and is testing a private-label e-bike from a low-cost supplier on the same shelves.", effects: { revenue: -0.6, brand: -1 } },
+        C: { title: "Pedalo targets your dealers", text: "With Castalia going badly, Pedalo is fighting for its home market and offering your best dealers extra rebates to switch.", effects: { share: -0.5, morale: -1 } }
+      },
+      surprise: {
+        title: "Pedalo starts a clearance sale",
+        text: "Short of cash after a slow Castalian launch, Pedalo has begun a surprise 12% clearance sale on its whole range in Norvia. Analysts are asking questions about its finances.",
+        effects: { share: -0.6, demand: -1 }
+      }
+    },
+    {
+      drift: { gdp: -0.1, inflation: 0.1, interest: 0.25, confidence: -1, unemployment: 0.1, demand: 0, inputs: 3, sustain: 1, talent: -2, trust: -1 },
+      reactions: {
+        A: { title: "The price war escalates", text: "Swiftly and Pedalo cut prices again. Dealers say your price cut squeezed their margins and ask for compensation.", effects: { revenue: -0.5, cash: -0.3, morale: -1 } },
+        B: { title: "Swiftly copies your warranty message", text: "Swiftly launches a 3-year warranty and pays a bonus to dealers who stock it. Independent tests still rate Halden best for service.", effects: { share: -0.3, brand: 1 } },
+        C: { title: "Swiftly targets Halden Go", text: "Swiftly drops its price to €799, aimed straight at Halden Go. Dealers report shoppers trading down from your core line.", effects: { revenue: -0.4, brand: -1 } }
+      },
+      surprise: {
+        title: "Swiftly starts hiring your technicians",
+        text: "Swiftly has bought a service workshop near your plant and is offering technicians 15% above market pay plus signing bonuses. Three of your team have already handed in their notice.",
+        effects: { talent: -5, staff: -3, morale: -2 }
+      }
+    },
+    {
+      drift: { gdp: 0.3, inflation: -0.4, interest: 0, confidence: 2, unemployment: -0.1, demand: 1, inputs: -2, sustain: 1, talent: 0, trust: 0 },
+      reactions: {
+        A: { title: "Rival technicians knock on your door", text: "Word of your four-day week has spread. Worried about Pedalo's future, several of its technicians apply to Halden, while Swiftly and Athlon publicly call the four-day week unsustainable.", effects: { talent: 2, staff: 4, morale: 1 } },
+        B: { title: "Rivals offer more money", text: "Swiftly offers your newly trained technicians 15% higher wages. Four have already left, taking their new certificates with them.", effects: { staff: -4, morale: -2, talent: -1 } },
+        C: { title: "Athlon outbids you for staff", text: "Athlon advertises its employer brand and hires away two of your engineers. A trade paper reports quality issues linked to temp workers.", effects: { staff: -2, brand: -2, morale: -2 } }
+      },
+      surprise: {
+        title: "Athlon launches own-brand e-bikes",
+        text: "Sports retailer Athlon launches its own e-bikes in 400 stores from €1,199. Its campaign brings many first-time buyers into the category, and takes some of yours.",
+        effects: { share: -0.7, demand: 2 }
+      }
+    }
+  ];
+
+  /* ------------------------------------------------------------------
+     HELPERS
+  ------------------------------------------------------------------ */
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const round = (v, d) => { const m = Math.pow(10, d); return Math.round(v * m) / m; };
+  const words = t => (t.trim().match(/\S+/g) || []).length;
+  const ind = k => IND.find(i => i.k === k);
+
+  function applyEffects(vals, eff) {
+    const out = Object.assign({}, vals);
+    Object.keys(eff).forEach(k => {
+      const i = ind(k);
+      if (!i) return;
+      const v = Math.min(i.max, Math.max(i.min, out[k] + eff[k]));
+      out[k] = round(v, i.dec);
+    });
+    return out;
+  }
+  function diff(a, b) {
+    const d = {};
+    IND.forEach(i => { d[i.k] = round(b[i.k] - a[i.k], i.dec); });
+    return d;
+  }
+  function fmt(k, v) {
+    const i = ind(k), a = Math.abs(v).toFixed(i.dec);
+    const s = i.unit === "€m" ? "€" + a + "m" : i.unit === "%" ? a + "%" : a;
+    return (v < 0 && Number(a) !== 0 ? MINUS : "") + s;
+  }
+  function fmtDelta(k, d) {
+    const i = ind(k);
+    if (d === 0) return "–";
+    const sign = d > 0 ? "+" : MINUS, a = Math.abs(d).toFixed(i.dec);
+    if (i.unit === "€m") return sign + "€" + a + "m";
+    if (i.unit === "%") return sign + a + " pp";
+    return sign + a;
+  }
+  function deltaClass(k, d) {
+    const i = ind(k);
+    if (d === 0 || i.good === 0) return "neutral";
+    return d * i.good > 0 ? "good" : "bad";
+  }
+
+  /* ------------------------------------------------------------------
+     STATE (saved in this browser so students can come back)
+  ------------------------------------------------------------------ */
+  function startingState() {
+    const vals = applyEffects(BASE, ROUNDS[0].surprise.effects);
+    return {
+      v: 1, round: 0, done: false,
+      values: vals, prev: Object.assign({}, BASE),
+      events: [{ kind: "surprise", title: ROUNDS[0].surprise.title, text: ROUNDS[0].surprise.text }],
+      decisions: [], drafts: {}, pending: null, tab: "briefing", chat: []
+    };
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || s.v !== 1 || typeof s.round !== "number" || s.round < 0 || s.round >= CASES.length) return null;
+      if (!s.values || !s.prev || IND.some(i => typeof s.values[i.k] !== "number" || typeof s.prev[i.k] !== "number")) return null;
+      if (!Array.isArray(s.events) || !Array.isArray(s.decisions) || !Array.isArray(s.chat)) return null;
+      return s;
+    } catch (e) { return null; }
+  }
+  let S = load() || startingState();
+  let saveTimer = null;
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable */ } }
+  function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); }
+
+  /* ------------------------------------------------------------------
+     GAME FLOW
+  ------------------------------------------------------------------ */
+  function submitDecision(choice, argument, risk) {
+    const c = CASES[S.round];
+    const opt = c.options.find(o => o.id === choice);
+    if (!opt || S.decisions[S.round]) return;
+    const after = applyEffects(S.values, opt.effects(S.values));
+    S.decisions[S.round] = { choice: choice, argument: argument, risk: risk };
+    S.pending = { deltas: diff(S.values, after), narrative: opt.outcome };
+    S.tab = "outcome";
+    save(); render(true);
+  }
+
+  function advance() {
+    const dec = S.decisions[S.round];
+    if (!dec || !S.pending) return;
+    const before = Object.assign({}, S.values);
+    let vals = applyEffects(S.values, S.pending.deltas);
+
+    if (S.round === CASES.length - 1) {
+      S.values = vals; S.prev = before; S.done = true; S.pending = null; S.tab = "final";
+      save(); render(true);
+      return;
+    }
+
+    S.round += 1;
+    const R = ROUNDS[S.round];
+    const events = [];
+    // the wider economy moves on; operating cash flow is about 3% of annual revenue per period
+    vals = applyEffects(vals, Object.assign({}, R.drift, { cash: round(vals.revenue * 0.03, 1) }));
+    if (R.reactions && R.reactions[dec.choice]) {
+      const e = R.reactions[dec.choice];
+      vals = applyEffects(vals, e.effects);
+      events.push({ kind: "reaction", title: e.title, text: e.text });
+    }
+    vals = applyEffects(vals, R.surprise.effects);
+    events.push({ kind: "surprise", title: R.surprise.title, text: R.surprise.text });
+
+    S.values = vals; S.prev = before; S.events = events; S.pending = null; S.tab = "briefing";
+    save(); render(true);
+  }
+
+  /* ------------------------------------------------------------------
+     READING THE DATA IN WORDS
+  ------------------------------------------------------------------ */
+  function insights(v) {
+    const out = [];
+    out.push(v.inflation >= 4.5 ? "Inflation is high and squeezes both households and margins."
+      : v.inflation >= 3 ? "Inflation is above normal, so costs and prices are still rising faster than usual."
+      : "Inflation is moderate.");
+    out.push(v.interest >= 4.5 ? "Borrowing is expensive."
+      : v.interest >= 3.5 ? "Borrowing costs are moderate to high, so financing an investment with debt has a real price."
+      : "Borrowing costs are low.");
+    out.push(v.confidence < 93 ? "Consumers are cautious and postponing big purchases."
+      : v.confidence < 100 ? "Consumer confidence is slightly below neutral, so big-ticket purchases are weighed carefully."
+      : "Consumers are confident.");
+    if (v.demand >= 105) out.push("Demand for bikes is strong.");
+    else if (v.demand < 98) out.push("Demand for bikes is soft.");
+    out.push(v.talent < 35 ? "Skilled technicians are extremely scarce."
+      : v.talent < 50 ? "The market for skilled technicians is tight."
+      : "Skilled workers are reasonably available.");
+    if (v.sustain >= 65) out.push("Shoppers increasingly ask about sustainability and product lifetime.");
+    else if (v.sustain <= 55) out.push("Sustainability is a weaker purchase driver than before.");
+    if (v.trust < 50) out.push("Public trust in business is low, so employers face closer scrutiny.");
+    else if (v.trust >= 60) out.push("Public trust in business is relatively healthy.");
+    if (v.cash < 1) out.push("Your liquidity is critically low: you are close to needing emergency credit.");
+    else if (v.cash < 2.5) out.push("Your cash cushion is thin.");
+    else if (v.cash > 5) out.push("You have a comfortable cash cushion.");
+    if (v.morale < 50) out.push("Staff morale is low and turnover risk is rising.");
+    else if (v.morale >= 75) out.push("Staff morale is high.");
+    return out;
+  }
+
+  /* ------------------------------------------------------------------
+     RENDERING
+  ------------------------------------------------------------------ */
+  const content = $("#content");
+
+  function renderSteps() {
+    let h = "<span>Case " + (S.done ? CASES.length : S.round + 1) + " of " + CASES.length + "</span>";
+    for (let i = 0; i < CASES.length; i++) {
+      const cls = (S.done || i < S.round) ? "done" : (i === S.round ? "cur" : "");
+      h += '<span class="dot ' + cls + '"></span>';
+    }
+    $("#steps").innerHTML = h;
+  }
+
+  function renderTabs() {
+    const decided = !!S.decisions[S.round];
+    const list = [["briefing", "Briefing", false], ["case", "Case file", false], ["exercise", "Exercise", false], ["outcome", "Outcome", !decided]];
+    if (S.done) list.push(["final", "Final report", false]);
+    $("#tabs").innerHTML = list.map(t =>
+      '<button class="tab" role="tab" type="button" data-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '"' + (t[2] ? " disabled" : "") + ">" + t[1] + "</button>"
+    ).join("");
+  }
+
+  function dataTable(prevVals, showChangeLabel) {
+    let h = '<div class="table-wrap"><table><thead><tr><th>Indicator</th><th class="num">Now</th><th class="num">' + esc(showChangeLabel) + "</th></tr></thead><tbody>";
+    let group = "";
+    IND.forEach(i => {
+      if (i.group !== group) { group = i.group; h += '<tr class="group"><td colspan="3">' + esc(group) + "</td></tr>"; }
+      const d = round(S.values[i.k] - prevVals[i.k], i.dec);
+      h += "<tr><td>" + esc(i.label) + '</td><td class="num">' + fmt(i.k, S.values[i.k]) + '</td><td class="num ' + deltaClass(i.k, d) + '">' + fmtDelta(i.k, d) + "</td></tr>";
+    });
+    return h + "</tbody></table></div>";
+  }
+
+  function renderBriefing() {
+    const c = CASES[S.round];
+    let h = '<div class="page"><h2>Briefing before Case ' + (S.round + 1) + "</h2>";
+    if (S.round === 0) {
+      h += '<p class="lead">Welcome. You own Halden Cycles, a bicycle manufacturer. Over four cases you will make major strategic decisions and defend each one in writing.</p>' +
+        '<div class="note">Before every case you get a briefing on the economic and social situation. The numbers change depending on your previous decisions, on the wider economy, and on moves by competitors, some of which you will not see coming. Your company is one of the larger players in a small regional market, which is why your choices can move the data. The advisor chat on the right is always open.</div>';
+    } else {
+      h += '<p class="muted">The figures below include the effects of your last decision, changes in the economy, and competitor moves since your previous briefing.</p>';
+    }
+    if (S.values.cash < 0) {
+      h += '<div class="warn"><strong>Negative cash.</strong> You are running on an overdraft, and lenders will ask questions about it.</div>';
+    }
+    h += "<h3>What the data says</h3><ul>" + insights(S.values).map(t => "<li>" + esc(t) + "</li>").join("") + "</ul>";
+    h += "<h3>Economic, social and company data</h3>" + dataTable(S.prev, S.round === 0 ? "Change since start" : "Change since last briefing");
+    if (S.round > 0) h += '<p class="muted small" style="margin-top:8px">Cash includes operating cash flow of about 3% of annual revenue per period.</p>';
+    h += "<h3>Competitor watch</h3>";
+    h += S.events.map(e =>
+      '<div class="event"><div class="kind">' + (e.kind === "reaction" ? "Reaction to your last decision" : "Unexpected move") + "</div><strong>" + esc(e.title) + "</strong>" + esc(e.text) + "</div>"
+    ).join("");
+    h += '<button class="btn" type="button" data-go="case">Read the case file</button></div>';
+    content.innerHTML = h;
+  }
+
+  function renderCase() {
+    const c = CASES[S.round];
+    let h = '<div class="page"><div class="tag">Case ' + (S.round + 1) + " of " + CASES.length + ": " + esc(c.tag) + "</div>";
+    h += "<h2>" + esc(c.title) + "</h2><p class=\"lead\">" + esc(c.blurb) + "</p>";
+    h += "<h3>Your role</h3><p>You are the founder and sole owner of Halden Cycles. The decision is yours, and you must be able to justify it to your bank, your staff and yourself.</p>";
+    h += "<h3>Background</h3>" + c.background.map(p => "<p>" + esc(p) + "</p>").join("");
+    h += "<h3>The situation</h3>" + c.situation.map(p => "<p>" + esc(p) + "</p>").join("");
+    h += "<h3>Key facts</h3><ul>" + c.facts.map(f => "<li>" + esc(f) + "</li>").join("") + "</ul>";
+    h += "<h3>What your team says</h3>" + c.team.map(t => '<div class="quote"><div class="who">' + esc(t[0]) + "</div>" + esc(t[1]) + "</div>").join("");
+    h += "<h3>Options on the table</h3>" + c.options.map(o => '<div class="opt"><div><strong>' + o.id + ". " + esc(o.title) + '</strong><br><span class="muted">' + esc(o.summary) + "</span></div></div>").join("");
+    h += '<div class="note">Current figures for the economy, society and your company are in the Briefing tab. You can return to this case file at any time while you work on the exercise.</div>';
+    h += '<button class="btn" type="button" data-go="exercise">Go to the exercise</button></div>';
+    content.innerHTML = h;
+  }
+
+  function renderExercise() {
+    const c = CASES[S.round];
+    const dec = S.decisions[S.round];
+    let h = '<div class="page"><div class="tag">Exercise ' + (S.round + 1) + " of " + CASES.length + "</div><h2>" + esc(c.exTitle) + "</h2><p>" + esc(c.question) + "</p>";
+
+    if (dec) {
+      const o = c.options.find(x => x.id === dec.choice);
+      h += '<div class="note">You have submitted this decision.</div>';
+      h += "<h3>Your decision</h3><p><strong>" + o.id + ". " + esc(o.title) + "</strong></p>";
+      h += "<h3>Your argument</h3><div class=\"readonly-text\">" + esc(dec.argument) + "</div>";
+      h += "<h3>Biggest risk and how you would manage it</h3><div class=\"readonly-text\">" + esc(dec.risk) + "</div>";
+      h += '<button class="btn" type="button" data-go="outcome">See the outcome</button></div>';
+      content.innerHTML = h;
+      return;
+    }
+
+    const d = S.drafts[S.round] || { choice: "", argument: "", risk: "" };
+    h += '<div class="note">A strong argument states your decision and goal, uses at least two figures from the case file or the briefing, explains why you rejected the best alternative, and anticipates how competitors might react.</div>';
+    h += '<fieldset><legend>Your decision</legend>' + c.options.map(o =>
+      '<label class="opt' + (d.choice === o.id ? " sel" : "") + '"><input type="radio" name="choice" value="' + o.id + '"' + (d.choice === o.id ? " checked" : "") + '><span><strong>' + o.id + ". " + esc(o.title) + '</strong><br><span class="muted">' + esc(o.summary) + "</span></span></label>"
+    ).join("") + "</fieldset>";
+    h += '<label class="field-label" for="arg">Your argument</label><textarea class="big" id="arg" rows="9" placeholder="Why is this the right decision for Halden Cycles?">' + esc(d.argument) + '</textarea><div class="count" id="argCount"></div>';
+    h += '<label class="field-label" for="risk">Biggest risk and how you would manage it</label><textarea class="big" id="risk" rows="4">' + esc(d.risk) + '</textarea><div class="count" id="riskCount"></div>';
+    h += '<button class="btn" type="button" id="submitDecision" disabled>Submit decision</button>';
+    h += '<p class="muted small" style="margin-top:10px">Your draft is saved automatically. Once you submit, the decision is final.</p></div>';
+    content.innerHTML = h;
+
+    const arg = $("#arg"), risk = $("#risk"), btn = $("#submitDecision");
+    function update() {
+      const checked = content.querySelector('input[name="choice"]:checked');
+      const choice = checked ? checked.value : "";
+      const aw = words(arg.value), rw = words(risk.value);
+      const ac = $("#argCount"), rc = $("#riskCount");
+      ac.textContent = aw + " of at least " + MIN_ARG + " words"; ac.className = "count" + (aw >= MIN_ARG ? " ok" : "");
+      rc.textContent = rw + " of at least " + MIN_RISK + " words"; rc.className = "count" + (rw >= MIN_RISK ? " ok" : "");
+      btn.disabled = !(choice && aw >= MIN_ARG && rw >= MIN_RISK);
+      content.querySelectorAll("label.opt").forEach(l => l.classList.toggle("sel", l.querySelector("input").checked));
+      S.drafts[S.round] = { choice: choice, argument: arg.value, risk: risk.value };
+      saveSoon();
+    }
+    arg.addEventListener("input", update);
+    risk.addEventListener("input", update);
+    content.querySelectorAll('input[name="choice"]').forEach(r => r.addEventListener("change", update));
+    btn.addEventListener("click", () => {
+      const checked = content.querySelector('input[name="choice"]:checked');
+      if (checked) submitDecision(checked.value, arg.value.trim(), risk.value.trim());
+    });
+    update();
+  }
+
+  function renderOutcome() {
+    const c = CASES[S.round];
+    const dec = S.decisions[S.round];
+    if (!dec || !S.pending) { content.innerHTML = '<div class="page"><p>Submit your decision in the Exercise tab to see its outcome.</p></div>'; return; }
+    const o = c.options.find(x => x.id === dec.choice);
+    const last = S.round === CASES.length - 1;
+    let h = '<div class="page"><h2>Outcome of your decision</h2><p>You chose <strong>' + o.id + ". " + esc(o.title) + "</strong>.</p>";
+    h += '<div class="result">' + esc(S.pending.narrative) + "</div>";
+    h += "<h3>How your decision changes the data</h3>";
+    const rows = IND.filter(i => S.pending.deltas[i.k] !== 0);
+    h += '<div class="table-wrap"><table><thead><tr><th>Indicator</th><th class="num">Before</th><th class="num">Change</th></tr></thead><tbody>' +
+      rows.map(i => "<tr><td>" + esc(i.label) + '</td><td class="num">' + fmt(i.k, S.values[i.k]) + '</td><td class="num ' + deltaClass(i.k, S.pending.deltas[i.k]) + '">' + fmtDelta(i.k, S.pending.deltas[i.k]) + "</td></tr>").join("") +
+      "</tbody></table></div>";
+    h += '<p class="muted small" style="margin-top:8px">' + (last ? "This was the last case." : "The next briefing will show these changes, together with anything else that has moved in the meantime.") + "</p>";
+    h += '<button class="btn" type="button" id="advance">' + (last ? "Finish and view final report" : "Continue to Case " + (S.round + 2) + ": " + esc(CASES[S.round + 1].title)) + "</button></div>";
+    content.innerHTML = h;
+    $("#advance").addEventListener("click", advance);
+  }
+
+  function reportText() {
+    let t = "STRATEGY CASE LAB: DECISION REPORT\nCompany: Halden Cycles\n\n";
+    S.decisions.forEach((d, i) => {
+      const c = CASES[i], o = c.options.find(x => x.id === d.choice);
+      t += "CASE " + (i + 1) + ": " + c.title + "\nDecision: " + o.id + ". " + o.title + "\nArgument:\n" + d.argument + "\nBiggest risk and how to manage it:\n" + d.risk + "\n\n";
+    });
+    t += "DATA (start, final)\n";
+    IND.forEach(i => { t += i.label + ": " + fmt(i.k, BASE[i.k]) + ", " + fmt(i.k, S.values[i.k]) + "\n"; });
+    return t;
+  }
+
+  function renderFinal() {
+    let h = '<div class="page"><h2>Final report</h2>';
+    h += "<p>You have finished all four cases. Here is where Halden Cycles ended up compared with the start.</p>";
+    h += '<ul><li>Annual revenue: ' + fmt("revenue", BASE.revenue) + " to " + fmt("revenue", S.values.revenue) + "</li>" +
+      "<li>Cash: " + fmt("cash", BASE.cash) + " to " + fmt("cash", S.values.cash) + "</li>" +
+      "<li>Employees: " + fmt("staff", BASE.staff) + " to " + fmt("staff", S.values.staff) + "</li>" +
+      "<li>Staff morale: " + fmt("morale", BASE.morale) + " to " + fmt("morale", S.values.morale) + "</li>" +
+      "<li>Brand reputation: " + fmt("brand", BASE.brand) + " to " + fmt("brand", S.values.brand) + "</li></ul>";
+    h += "<h3>All indicators</h3>" + dataTable(BASE, "Change since start");
+    h += "<h3>Your decisions</h3>" + S.decisions.map((d, i) => {
+      const c = CASES[i], o = c.options.find(x => x.id === d.choice);
+      return "<p><strong>Case " + (i + 1) + ": " + esc(c.title) + "</strong><br>" + o.id + ". " + esc(o.title) + "</p><div class=\"readonly-text\">" + esc(d.argument) + "</div>";
+    }).join("");
+    h += "<h3>Questions to discuss</h3><ul>" +
+      "<li>Which decision would you make differently now, and what information would have changed your mind?</li>" +
+      "<li>Which competitor move surprised you most, and how could you have prepared for it?</li>" +
+      "<li>Where did you trade short-term cash for a long-term position, and was it worth it?</li></ul>";
+    h += "<h3>Report text</h3><textarea class=\"report-box\" id=\"reportBox\" readonly></textarea>";
+    h += '<button class="btn secondary" type="button" id="copyReport">Copy report</button> <span class="muted small" id="copyMsg"></span></div>';
+    content.innerHTML = h;
+    const box = $("#reportBox");
+    box.value = reportText();
+    $("#copyReport").addEventListener("click", () => {
+      const msg = $("#copyMsg");
+      function fallback() {
+        try { box.focus(); box.select(); msg.textContent = document.execCommand("copy") ? "Copied." : "Select the text above and copy it."; }
+        catch (e) { msg.textContent = "Select the text above and copy it."; }
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(box.value).then(() => { msg.textContent = "Copied."; }, fallback);
+        } else { fallback(); }
+      } catch (e) { fallback(); }
+    });
+  }
+
+  function renderPane() {
+    if (S.tab === "outcome" && !S.decisions[S.round]) S.tab = "briefing";
+    if (S.tab === "final" && !S.done) S.tab = "briefing";
+    if (S.tab === "case") renderCase();
+    else if (S.tab === "exercise") renderExercise();
+    else if (S.tab === "outcome") renderOutcome();
+    else if (S.tab === "final") renderFinal();
+    else renderBriefing();
+  }
+
+  function render(scrollTop) {
+    renderSteps();
+    renderTabs();
+    renderPane();
+    if (scrollTop) {
+      content.scrollTop = 0;
+      if (window.matchMedia && window.matchMedia("(max-width: 860px)").matches) window.scrollTo(0, 0);
+    }
+  }
+
+  function go(tab) { S.tab = tab; save(); render(true); }
+
+  content.addEventListener("click", e => {
+    const b = e.target.closest("[data-go]");
+    if (b) go(b.getAttribute("data-go"));
+  });
+  $("#tabs").addEventListener("click", e => {
+    const b = e.target.closest("[data-tab]");
+    if (b && !b.disabled) go(b.getAttribute("data-tab"));
+  });
+
+  // Restart needs two clicks (browser confirm dialogs can be blocked)
+  let armed = false, armTimer = null;
+  const restartBtn = $("#restart");
+  restartBtn.addEventListener("click", () => {
+    if (!armed) {
+      armed = true; restartBtn.textContent = "Click again to restart";
+      armTimer = setTimeout(() => { armed = false; restartBtn.textContent = "Restart"; }, 4000);
+      return;
+    }
+    clearTimeout(armTimer); armed = false; restartBtn.textContent = "Restart";
+    const chat = S.chat;
+    S = startingState(); S.chat = chat;
+    save(); render(true);
+  });
+
+  /* ------------------------------------------------------------------
+     CHAT (interface only; connect a real assistant in getBotReply)
+  ------------------------------------------------------------------ */
+  let chatBusy = false;
+
+  function chatContext() {
+    return { caseNumber: S.round + 1, caseTitle: CASES[S.round].title, data: S.values, finished: S.done };
+  }
+
+  // Replace the body of this function with a call to your chatbot.
+  // It receives the student's message and the current case and data.
+  async function getBotReply(message, context) {
+    await new Promise(r => setTimeout(r, 500));
+    return "I'm not connected to a live assistant yet, so I can't answer properly. Once I am, I'll be able to see which case you are on and the current data, and help you test your argument.";
+  }
+
+  function renderChat() {
+    const box = $("#msgs");
+    box.innerHTML = "";
+    S.chat.forEach(m => {
+      const d = document.createElement("div");
+      d.className = "msg " + (m.role === "user" ? "user" : "bot");
+      d.textContent = m.text;
+      box.appendChild(d);
+    });
+    if (chatBusy) {
+      const d = document.createElement("div");
+      d.className = "msg bot"; d.textContent = "…";
+      box.appendChild(d);
+    }
+    box.scrollTop = box.scrollHeight;
+  }
+  function trimChat() { if (S.chat.length > 60) S.chat = S.chat.slice(-60); }
+
+  async function sendChat() {
+    const inp = $("#chatInput");
+    const text = inp.value.trim();
+    if (!text || chatBusy) return;
+    inp.value = "";
+    S.chat.push({ role: "user", text: text });
+    trimChat(); chatBusy = true; save(); renderChat();
+    let reply;
+    try { reply = await getBotReply(text, chatContext()); }
+    catch (e) { reply = "Something went wrong. Please try again."; }
+    S.chat.push({ role: "bot", text: String(reply) });
+    chatBusy = false; trimChat(); save(); renderChat();
+  }
+  $("#send").addEventListener("click", sendChat);
+  $("#chatInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendChat(); }
+  });
+
+  if (S.chat.length === 0) {
+    S.chat.push({ role: "bot", text: "Hello, I'm your strategy advisor. Ask me about the case, the data or how to structure your argument. (This chat is a demo and is not connected to an assistant yet.)" });
+  }
+
+  /* ------------------------------------------------------------------
+     START
+  ------------------------------------------------------------------ */
+  render(false);
+  renderChat();
+})();
+</script>
+</body>
+</html>
